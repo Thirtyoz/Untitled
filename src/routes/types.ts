@@ -1,6 +1,7 @@
 import { ComponentType, ReactNode } from "react";
 import { NavigateFunction } from "react-router-dom";
 import { ThemeMode } from "@/layouts/AppLayout";
+import { UserInfo } from "@/store/useAppStore";
 
 export type RouteHandlers = {
   handleOnboardingComplete: (nickname: string, interests: string[]) => void;
@@ -11,8 +12,7 @@ export type RouteHandlers = {
 export type RouteFactoryContext = {
   theme: ThemeMode;
   navigate: NavigateFunction;
-  userNickname: string;
-  userInterests: string[];
+  userInfo: UserInfo;
   handlers: RouteHandlers;
 };
 

@@ -15,7 +15,7 @@ function RequireUserGuard({ children }: { children: ReactNode }) {
 function RedirectIfAuthenticatedGuard({ children }: { children: ReactNode }) {
   const { user, hasCheckedSession } = useAppStore();
   if (!hasCheckedSession) return null;
-  if (user) return <Navigate to="/onboarding" replace />;
+  if (user) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -28,16 +28,8 @@ type GuardKey = keyof typeof guardComponents;
 
 export function useRouteRenderer() {
   const navigate = useNavigate();
-  const {
-    userNickname,
-    userInterests,
-    theme,
-    setUser,
-    setHasCheckedSession,
-    setUserNickname,
-    setUserInterests,
-    setTheme,
-  } = useAppStore();
+  const { userInfo, setUser, setHasCheckedSession, setUserInfo } = useAppStore();
+  const { theme } = userInfo;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -59,14 +51,12 @@ export function useRouteRenderer() {
   }, [setUser, setHasCheckedSession, navigate]);
 
   const routeContext: RouteFactoryContext = {
-    theme,
     navigate,
-    userNickname,
-    userInterests,
+    theme,
+    userInfo,
     handlers: {
-      handleOnboardingComplete: (nickname, interests) => {
-        setUserNickname(nickname);
-        setUserInterests(interests);
+      handleOnboardingComplete: (nextNickname, interests) => {
+        setUserInfo({ nickname: nextNickname, interests });
         navigate("/");
       },
       handleLogout: async () => {
@@ -74,7 +64,7 @@ export function useRouteRenderer() {
         setUser(null);
         navigate("/login");
       },
-      toggleTheme: () => setTheme(theme === "light" ? "dark" : "light"),
+      toggleTheme: () => setUserInfo({ theme: theme === "light" ? "dark" : "light" }),
     },
   };
 

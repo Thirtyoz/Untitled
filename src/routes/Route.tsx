@@ -20,7 +20,7 @@ const routeDefinitions: RouteDefinition[] = [
     guards: ["redirectIfAuthenticated"],
     getProps: ({ theme, navigate }) => ({
       theme,
-      onLogin: () => navigate("/onboarding"),
+      onLogin: () => navigate("/"),
     }),
   },
   {
@@ -37,9 +37,9 @@ const routeDefinitions: RouteDefinition[] = [
     component: HomeMapScreen,
     withLayout: true,
     guards: ["requireUser"],
-    getProps: ({ theme, navigate, userNickname }) => ({
+    getProps: ({ theme, navigate, userInfo }) => ({
       theme,
-      userNickname,
+      userNickname: userInfo.nickname,
       onNavigate: (screen: string) => navigate(`/${screen}`),
     }),
   },
@@ -87,12 +87,12 @@ const routeDefinitions: RouteDefinition[] = [
     component: MyPageScreen,
     withLayout: true,
     guards: ["requireUser"],
-    getProps: ({ theme, navigate, userNickname, userInterests, handlers }) => ({
+    getProps: ({ theme, navigate, userInfo, handlers }) => ({
       theme,
       onBack: () => navigate("/"),
       onLogout: handlers.handleLogout,
-      userNickname,
-      userInterests,
+      userNickname: userInfo.nickname,
+      userInterests: userInfo.interests,
       onToggleTheme: handlers.toggleTheme,
     }),
   },
@@ -101,10 +101,10 @@ const routeDefinitions: RouteDefinition[] = [
     component: RankingScreen,
     withLayout: true,
     guards: ["requireUser"],
-    getProps: ({ theme, navigate, userNickname }) => ({
+    getProps: ({ theme, navigate, userInfo }) => ({
       theme,
       onBack: () => navigate("/"),
-      currentUserNickname: userNickname,
+      currentUserNickname: userInfo.nickname,
     }),
   },
 ];
