@@ -1,8 +1,7 @@
-import { MapPin, Plus, User, Sparkles, ChevronUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useEffect, useRef, useState } from "react";
-import { ImageWithFallback } from "@/components/common/ImageWithFallback";
-import { BadgeDetailScreen } from "@/pages/badge/BadgeDetailScreen";
+import { MapPin, Plus, User, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { loadNaverMapsScript } from "@/utils/loadNaverMaps";
+import { BadgeDetailScreen } from "../badge/BadgeDetailScreen";
 
 interface Badge {
   id: number;
@@ -76,111 +75,122 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
   const naverMapRef = useRef<naver.maps.Map | null>(null);
   const markersRef = useRef<naver.maps.Marker[]>([]);
 
-  // Initialize Naver Map
+  // Load Naver Maps script and initialize map
   useEffect(() => {
-    if (!mapRef.current || !window.naver) return;
+    const initMap = async () => {
+      try {
+        // Load Naver Maps script
+        await loadNaverMapsScript();
 
-    // Seoul bounds (서울 지역 경계)
-    const seoulBounds = new naver.maps.LatLngBounds(
-      new naver.maps.LatLng(37.413294, 126.734086), // 남서 (Southwest)
-      new naver.maps.LatLng(37.715133, 127.269311)  // 북동 (Northeast)
-    );
+        if (!mapRef.current || !window.naver) return;
 
-    // Create map centered on Seoul
-    const mapOptions: naver.maps.MapOptions = {
-      center: new naver.maps.LatLng(37.5665, 126.9780), // Seoul City Hall
-      zoom: 12,
-      minZoom: 10,
-      maxZoom: 17,
-      bounds: seoulBounds,
-      zoomControl: true,
-      zoomControlOptions: {
-        position: naver.maps.Position.TOP_RIGHT,
-      },
-      mapTypeControl: false,
-      scaleControl: false,
-      logoControl: false,
-      mapDataControl: false,
-      scrollWheel: true,
-      draggable: true,
+        // Seoul bounds (서울 지역 경계)
+        const seoulBounds = new naver.maps.LatLngBounds(
+          new naver.maps.LatLng(37.413294, 126.734086), // 남서 (Southwest)
+          new naver.maps.LatLng(37.715133, 127.269311)  // 북동 (Northeast)
+        );
+
+        // Create map centered on Seoul
+        const mapOptions: naver.maps.MapOptions = {
+          center: new naver.maps.LatLng(37.5665, 126.9780), // Seoul City Hall
+          zoom: 12,
+          minZoom: 10,
+          maxZoom: 17,
+          bounds: seoulBounds,
+          zoomControl: true,
+          zoomControlOptions: {
+            position: naver.maps.Position.TOP_RIGHT,
+          },
+          mapTypeControl: false,
+          scaleControl: false,
+          logoControl: false,
+          mapDataControl: false,
+          scrollWheel: true,
+          draggable: true,
+        };
+
+        const map = new naver.maps.Map(mapRef.current, mapOptions);
+        naverMapRef.current = map;
+
+        console.log(map);
+        // Set max bounds to restrict dragging to Seoul area
+        map.setOptions({
+          maxBounds: seoulBounds
+        });
+
+        // Add bounds check on map movement to ensure user stays within Seoul
+        const SEOUL_MIN_LAT = 37.413294;
+        const SEOUL_MAX_LAT = 37.715133;
+        const SEOUL_MIN_LNG = 126.734086;
+        const SEOUL_MAX_LNG = 127.269311;
+
+        naver.maps.Event.addListener(map, 'dragend', () => {
+          const currentCenter = map.getCenter();
+          const currentLat = currentCenter.y;
+          const currentLng = currentCenter.x;
+
+          // Check if current view is outside Seoul bounds
+          if (
+            currentLat < SEOUL_MIN_LAT ||
+            currentLat > SEOUL_MAX_LAT ||
+            currentLng < SEOUL_MIN_LNG ||
+            currentLng > SEOUL_MAX_LNG
+          ) {
+            // Calculate the closest point within bounds
+            const lat = Math.max(
+              SEOUL_MIN_LAT,
+              Math.min(SEOUL_MAX_LAT, currentLat)
+            );
+            const lng = Math.max(
+              SEOUL_MIN_LNG,
+              Math.min(SEOUL_MAX_LNG, currentLng)
+            );
+
+            // Move map back to valid position immediately
+            map.setCenter(new naver.maps.LatLng(lat, lng));
+          }
+        });
+
+        // Add markers for each badge
+        const newMarkers = MOCK_BADGES.map((badge) => {
+          // Create custom HTML marker
+          const markerElement = document.createElement('div');
+          markerElement.className = 'custom-marker';
+          markerElement.innerHTML = `
+            <div class="relative ${theme === "dark" ? "drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]" : "drop-shadow-lg"}">
+              <div class="${badge.color} w-16 h-16 rounded-2xl flex flex-col items-center justify-center border-2 border-white/50 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.3)] transform transition-all hover:rotate-2 hover:scale-110 cursor-pointer">
+                <span class="text-2xl filter drop-shadow-sm">${badge.emoji}</span>
+              </div>
+              <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-2 rounded-full blur-sm ${theme === "dark" ? "bg-black/40" : "bg-black/20"}"></div>
+            </div>
+          `;
+
+          const marker = new naver.maps.Marker({
+            position: new naver.maps.LatLng(badge.location.lat, badge.location.lng),
+            map: map,
+            icon: {
+              content: markerElement.outerHTML,
+              anchor: new naver.maps.Point(32, 64),
+            },
+            clickable: true,
+          });
+
+          // Add click event
+          naver.maps.Event.addListener(marker, 'click', () => {
+            setSelectedBadge(badge);
+            setIsModalOpen(true);
+          });
+
+          return marker;
+        });
+
+        markersRef.current = newMarkers;
+      } catch (error) {
+        console.error('Failed to load Naver Maps:', error);
+      }
     };
 
-    const map = new naver.maps.Map(mapRef.current, mapOptions);
-    naverMapRef.current = map;
-
-    console.log(map)
-    // Set max bounds to restrict dragging to Seoul area
-    map.setOptions({
-      maxBounds: seoulBounds
-    });
-
-    // Add bounds check on map movement to ensure user stays within Seoul
-    const SEOUL_MIN_LAT = 37.413294;
-    const SEOUL_MAX_LAT = 37.715133;
-    const SEOUL_MIN_LNG = 126.734086;
-    const SEOUL_MAX_LNG = 127.269311;
-
-    naver.maps.Event.addListener(map, 'dragend', () => {
-      const currentCenter = map.getCenter();
-      const currentLat = currentCenter.y;
-      const currentLng = currentCenter.x;
-
-      // Check if current view is outside Seoul bounds
-      if (
-        currentLat < SEOUL_MIN_LAT ||
-        currentLat > SEOUL_MAX_LAT ||
-        currentLng < SEOUL_MIN_LNG ||
-        currentLng > SEOUL_MAX_LNG
-      ) {
-        // Calculate the closest point within bounds
-        const lat = Math.max(
-          SEOUL_MIN_LAT,
-          Math.min(SEOUL_MAX_LAT, currentLat)
-        );
-        const lng = Math.max(
-          SEOUL_MIN_LNG,
-          Math.min(SEOUL_MAX_LNG, currentLng)
-        );
-
-        // Move map back to valid position immediately
-        map.setCenter(new naver.maps.LatLng(lat, lng));
-      }
-    });
-
-    // Add markers for each badge
-    const newMarkers = MOCK_BADGES.map((badge) => {
-      // Create custom HTML marker
-      const markerElement = document.createElement('div');
-      markerElement.className = 'custom-marker';
-      markerElement.innerHTML = `
-        <div class="relative ${theme === "dark" ? "drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]" : "drop-shadow-lg"}">
-          <div class="${badge.color} w-16 h-16 rounded-2xl flex flex-col items-center justify-center border-2 border-white/50 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.3)] transform transition-all hover:rotate-2 hover:scale-110 cursor-pointer">
-            <span class="text-2xl filter drop-shadow-sm">${badge.emoji}</span>
-          </div>
-          <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-2 rounded-full blur-sm ${theme === "dark" ? "bg-black/40" : "bg-black/20"}"></div>
-        </div>
-      `;
-
-      const marker = new naver.maps.Marker({
-        position: new naver.maps.LatLng(badge.location.lat, badge.location.lng),
-        map: map,
-        icon: {
-          content: markerElement.outerHTML,
-          anchor: new naver.maps.Point(32, 64),
-        },
-        clickable: true,
-      });
-
-      // Add click event
-      naver.maps.Event.addListener(marker, 'click', () => {
-        setSelectedBadge(badge);
-        setIsModalOpen(true);
-      });
-
-      return marker;
-    });
-
-    markersRef.current = newMarkers;
+    initMap();
 
     // Cleanup on unmount
     return () => {
@@ -191,7 +201,7 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
         naverMapRef.current = null;
       }
     };
-  }, [theme, onNavigate]);
+  }, [theme]);
 
   return (
     <div className={`h-screen flex flex-col overflow-hidden ${

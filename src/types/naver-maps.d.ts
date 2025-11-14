@@ -2,6 +2,7 @@ declare namespace naver.maps {
   class Map {
     constructor(element: HTMLElement | string, options?: MapOptions);
     setCenter(center: LatLng | LatLngLiteral): void;
+    getCenter(): LatLng;
     setZoom(zoom: number): void;
     setOptions(options: Partial<MapOptions>): void;
     setOptions(key: string, value: any): void;
