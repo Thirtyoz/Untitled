@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { LoginScreen } from "./components/LoginScreen";
 import { OnboardingScreen } from "./components/OnboardingScreen";
 import { HomeMapScreen } from "./components/HomeMapScreen";
-import { BadgeDetailScreen } from "./components/BadgeDetailScreen";
 import { CreateBadgeScreen } from "./components/CreateBadgeScreen";
 import { BadgeResultScreen } from "./components/BadgeResultScreen";
 import { AIRecommendScreen } from "./components/AIRecommendScreen";
@@ -16,7 +15,6 @@ type Screen =
   | "login"
   | "onboarding"
   | "home"
-  | "badge-detail"
   | "create-badge"
   | "badge-result"
   | "ai-recommend"
@@ -36,9 +34,26 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
-        // If user is logged in but on login screen, move to onboarding
-        if (currentScreen === "login") {
-          setCurrentScreen("onboarding");
+
+        // Check if onboarding is completed in localStorage
+        const onboardingData = localStorage.getItem("onboarding_completed");
+
+        if (onboardingData) {
+          // Onboarding already completed, load data and go to home
+          try {
+            const { nickname, interests } = JSON.parse(onboardingData);
+            setUserNickname(nickname);
+            setUserInterests(interests);
+            setCurrentScreen("home");
+          } catch (e) {
+            // If parsing fails, show onboarding again
+            setCurrentScreen("onboarding");
+          }
+        } else {
+          // First time login, show onboarding
+          if (currentScreen === "login") {
+            setCurrentScreen("onboarding");
+          }
         }
       }
     });
@@ -49,9 +64,25 @@ export default function App() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
-        // When user logs in, go to onboarding
-        if (currentScreen === "login") {
-          setCurrentScreen("onboarding");
+
+        // Check if onboarding is completed
+        const onboardingData = localStorage.getItem("onboarding_completed");
+
+        if (onboardingData) {
+          // Already completed onboarding
+          try {
+            const { nickname, interests } = JSON.parse(onboardingData);
+            setUserNickname(nickname);
+            setUserInterests(interests);
+            setCurrentScreen("home");
+          } catch (e) {
+            setCurrentScreen("onboarding");
+          }
+        } else {
+          // When user logs in for the first time, go to onboarding
+          if (currentScreen === "login") {
+            setCurrentScreen("onboarding");
+          }
         }
       } else {
         setUser(null);
@@ -70,6 +101,13 @@ export default function App() {
   const handleOnboardingComplete = (nickname: string, interests: string[]) => {
     setUserNickname(nickname);
     setUserInterests(interests);
+
+    // Save to localStorage to prevent showing onboarding again
+    localStorage.setItem(
+      "onboarding_completed",
+      JSON.stringify({ nickname, interests })
+    );
+
     setCurrentScreen("home");
   };
 
@@ -84,6 +122,8 @@ export default function App() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
+    // Clear onboarding data on logout
+    localStorage.removeItem("onboarding_completed");
     setCurrentScreen("login");
   };
 
@@ -99,8 +139,6 @@ export default function App() {
         return <OnboardingScreen onComplete={handleOnboardingComplete} theme={theme} />;
       case "home":
         return <HomeMapScreen onNavigate={setCurrentScreen} userNickname={userNickname} theme={theme} />;
-      case "badge-detail":
-        return <BadgeDetailScreen onBack={() => setCurrentScreen("home")} theme={theme} />;
       case "create-badge":
         return <CreateBadgeScreen onBack={() => setCurrentScreen("home")} onComplete={handleBadgeCreated} theme={theme} />;
       case "badge-result":

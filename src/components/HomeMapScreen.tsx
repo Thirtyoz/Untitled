@@ -1,7 +1,7 @@
 import { MapPin, Plus, User, Sparkles, ChevronUp } from "lucide-react";
 import { Button } from "./ui/button";
-import { useState } from "react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { useState, useEffect, useRef } from "react";
+import { BadgeDetailScreen } from "./BadgeDetailScreen";
 
 interface Badge {
   id: number;
@@ -23,7 +23,7 @@ const MOCK_BADGES: Badge[] = [
   {
     id: 1,
     name: "망원 한강공원",
-    location: { lat: 37.551, lng: 126.894 },
+    location: { lat: 37.5518, lng: 126.8947 }, // Mangwon Hangang Park (실제 좌표)
     date: "2024.03.15",
     color: "bg-amber-400",
     emoji: "🌅",
@@ -32,7 +32,7 @@ const MOCK_BADGES: Badge[] = [
   {
     id: 2,
     name: "북촌 한옥마을",
-    location: { lat: 37.582, lng: 126.983 },
+    location: { lat: 37.5825, lng: 126.9834 }, // Bukchon Hanok Village (실제 좌표)
     date: "2024.03.10",
     color: "bg-rose-400",
     emoji: "🏠",
@@ -41,7 +41,7 @@ const MOCK_BADGES: Badge[] = [
   {
     id: 3,
     name: "성수 카페거리",
-    location: { lat: 37.544, lng: 127.055 },
+    location: { lat: 37.5447, lng: 127.0557 }, // Seongsu Cafe Street (실제 좌표)
     date: "2024.03.08",
     color: "bg-teal-400",
     emoji: "☕",
@@ -50,7 +50,7 @@ const MOCK_BADGES: Badge[] = [
   {
     id: 4,
     name: "남산타워",
-    location: { lat: 37.551, lng: 126.988 },
+    location: { lat: 37.5512, lng: 126.9882 }, // N Seoul Tower (실제 좌표)
     date: "2024.03.05",
     color: "bg-purple-400",
     emoji: "🗼",
@@ -59,7 +59,7 @@ const MOCK_BADGES: Badge[] = [
   {
     id: 5,
     name: "이태원 경리단길",
-    location: { lat: 37.534, lng: 126.994 },
+    location: { lat: 37.5340, lng: 126.9947 }, // Gyeongnidan-gil, Itaewon (실제 좌표)
     date: "2024.03.01",
     color: "bg-blue-400",
     emoji: "🍜",
@@ -70,6 +70,127 @@ const MOCK_BADGES: Badge[] = [
 export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreenProps) {
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const naverMapRef = useRef<naver.maps.Map | null>(null);
+  const markersRef = useRef<naver.maps.Marker[]>([]);
+
+  // Initialize Naver Map
+  useEffect(() => {
+    if (!mapRef.current || !window.naver) return;
+
+    // Seoul bounds (서울 지역 경계)
+    const seoulBounds = new naver.maps.LatLngBounds(
+      new naver.maps.LatLng(37.413294, 126.734086), // 남서 (Southwest)
+      new naver.maps.LatLng(37.715133, 127.269311)  // 북동 (Northeast)
+    );
+
+    // Create map centered on Seoul
+    const mapOptions: naver.maps.MapOptions = {
+      center: new naver.maps.LatLng(37.5665, 126.9780), // Seoul City Hall
+      zoom: 12,
+      minZoom: 10,
+      maxZoom: 17,
+      bounds: seoulBounds,
+      zoomControl: true,
+      zoomControlOptions: {
+        position: naver.maps.Position.TOP_RIGHT,
+      },
+      mapTypeControl: false,
+      scaleControl: false,
+      logoControl: false,
+      mapDataControl: false,
+      scrollWheel: true,
+      draggable: true,
+    };
+
+    const map = new naver.maps.Map(mapRef.current, mapOptions);
+    naverMapRef.current = map;
+
+    console.log(map)
+    // Set max bounds to restrict dragging to Seoul area
+    map.setOptions({
+      maxBounds: seoulBounds
+    });
+
+    // Add bounds check on map movement to ensure user stays within Seoul
+    const SEOUL_MIN_LAT = 37.413294;
+    const SEOUL_MAX_LAT = 37.715133;
+    const SEOUL_MIN_LNG = 126.734086;
+    const SEOUL_MAX_LNG = 127.269311;
+
+    naver.maps.Event.addListener(map, 'dragend', () => {
+      const currentCenter = map.getCenter();
+      const currentLat = currentCenter.y;
+      const currentLng = currentCenter.x;
+
+      // Check if current view is outside Seoul bounds
+      if (
+        currentLat < SEOUL_MIN_LAT ||
+        currentLat > SEOUL_MAX_LAT ||
+        currentLng < SEOUL_MIN_LNG ||
+        currentLng > SEOUL_MAX_LNG
+      ) {
+        // Calculate the closest point within bounds
+        const lat = Math.max(
+          SEOUL_MIN_LAT,
+          Math.min(SEOUL_MAX_LAT, currentLat)
+        );
+        const lng = Math.max(
+          SEOUL_MIN_LNG,
+          Math.min(SEOUL_MAX_LNG, currentLng)
+        );
+
+        // Move map back to valid position immediately
+        map.setCenter(new naver.maps.LatLng(lat, lng));
+      }
+    });
+
+    // Add markers for each badge
+    const newMarkers = MOCK_BADGES.map((badge) => {
+      // Create custom HTML marker
+      const markerElement = document.createElement('div');
+      markerElement.className = 'custom-marker';
+      markerElement.innerHTML = `
+        <div class="relative ${theme === "dark" ? "drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]" : "drop-shadow-lg"}">
+          <div class="${badge.color} w-16 h-16 rounded-2xl flex flex-col items-center justify-center border-2 border-white/50 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.3)] transform transition-all hover:rotate-2 hover:scale-110 cursor-pointer">
+            <span class="text-2xl filter drop-shadow-sm">${badge.emoji}</span>
+          </div>
+          <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-2 rounded-full blur-sm ${theme === "dark" ? "bg-black/40" : "bg-black/20"}"></div>
+        </div>
+      `;
+
+      const marker = new naver.maps.Marker({
+        position: new naver.maps.LatLng(badge.location.lat, badge.location.lng),
+        map: map,
+        icon: {
+          content: markerElement.outerHTML,
+          anchor: new naver.maps.Point(32, 64),
+        },
+        clickable: true,
+      });
+
+      // Add click event
+      naver.maps.Event.addListener(marker, 'click', () => {
+        setSelectedBadge(badge);
+        setIsModalOpen(true);
+      });
+
+      return marker;
+    });
+
+    markersRef.current = newMarkers;
+
+    // Cleanup on unmount
+    return () => {
+      markersRef.current.forEach(marker => marker.setMap(null));
+      markersRef.current = [];
+      if (naverMapRef.current) {
+        naverMapRef.current.destroy();
+        naverMapRef.current = null;
+      }
+    };
+  }, [theme, onNavigate]);
 
   return (
     <div className={`h-screen flex flex-col overflow-hidden ${
@@ -97,14 +218,8 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
 
       {/* Map area */}
       <div className={`flex-1 relative ${theme === "dark" ? "bg-slate-900" : "bg-gray-50"}`}>
-        {/* Map background - Seoul map photo */}
-        <div className="absolute inset-0">
-          <ImageWithFallback
-            src="https://images.unsplash.com/flagged/photo-1580051720305-a944536881fb?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxTZW91bCUyMG1hcCUyMGFlcmlhbHxlbnwxfHx8fDE3NjMwMzgyNjB8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-            alt="Seoul map"
-            className="w-full h-full object-cover opacity-30"
-          />
-        </div>
+        {/* Naver Map Container */}
+        <div id="map" ref={mapRef} className="absolute inset-0 w-full h-full" />
 
         {/* AI Recommendation banner */}
         <div className="absolute top-4 left-4 right-4 z-10">
@@ -130,37 +245,6 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
               보기
             </button>
           </div>
-        </div>
-
-        {/* Badge pins on map */}
-        <div className="absolute inset-0">
-          {MOCK_BADGES.map((badge) => (
-            <button
-              key={badge.id}
-              onClick={() => onNavigate("badge-detail")}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110"
-              style={{
-                left: `${((badge.location.lng - 126.8) / 0.4) * 100}%`,
-                top: `${100 - ((badge.location.lat - 37.45) / 0.2) * 100}%`,
-              }}
-            >
-              {/* Fridge magnet style badge */}
-              <div className={`relative ${
-                theme === "dark" ? "drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]" : "drop-shadow-lg"
-              }`}>
-                {/* Badge container with 3D effect */}
-                <div className={`${badge.color} w-16 h-16 rounded-2xl flex flex-col items-center justify-center border-2 border-white/50 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.3)] transform transition-all hover:rotate-2`}>
-                  {/* Emoji */}
-                  <span className="text-2xl filter drop-shadow-sm">{badge.emoji}</span>
-                </div>
-                
-                {/* Pin shadow */}
-                <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-2 rounded-full blur-sm ${
-                  theme === "dark" ? "bg-black/40" : "bg-black/20"
-                }`} />
-              </div>
-            </button>
-          ))}
         </div>
 
         {/* Floating action button */}
@@ -203,7 +287,10 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
           {MOCK_BADGES.map((badge) => (
             <div
               key={badge.id}
-              onClick={() => onNavigate("badge-detail")}
+              onClick={() => {
+                setSelectedBadge(badge);
+                setIsModalOpen(true);
+              }}
               className={`w-full rounded-xl p-3 flex items-center gap-3 transition-colors border cursor-pointer ${
                 theme === "dark"
                   ? "bg-slate-800/50 hover:bg-slate-800 border-slate-700"
@@ -229,6 +316,17 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
           ))}
         </div>
       </div>
+
+      {/* Badge Detail Modal */}
+      <BadgeDetailScreen
+        badge={selectedBadge}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedBadge(null);
+        }}
+        theme={theme}
+      />
     </div>
   );
 }
