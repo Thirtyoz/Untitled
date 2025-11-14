@@ -1,7 +1,7 @@
 import { MapPin } from "lucide-react";
-import { Button } from "./ui/button";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { supabase } from "../supabaseClient";
+import { Button } from "@/components/ui/button";
+import { ImageWithFallback } from "@/components/common/ImageWithFallback";
+import { supabase } from "@/lib/supabase";
 import { useState } from "react";
 
 interface LoginScreenProps {

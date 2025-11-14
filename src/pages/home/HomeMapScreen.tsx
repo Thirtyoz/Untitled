@@ -1,7 +1,5 @@
-import { MapPin, Plus, User, Sparkles, ChevronUp } from "lucide-react";
-import { Button } from "./ui/button";
+import { MapPin, Plus, User, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { BadgeDetailScreen } from "./BadgeDetailScreen";
 import { loadNaverMapsScript } from "@/utils/loadNaverMaps";
 
 interface Badge {

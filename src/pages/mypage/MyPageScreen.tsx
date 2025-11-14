@@ -1,5 +1,5 @@
 import { ArrowLeft, User, MapPin, Award, Settings, LogOut, Edit2, Moon, Sun } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 
 interface MyPageScreenProps {
   onBack: () => void;

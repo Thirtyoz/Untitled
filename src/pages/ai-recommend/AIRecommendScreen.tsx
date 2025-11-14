@@ -1,7 +1,7 @@
 import { ArrowLeft, MapPin, Star, Navigation, Bookmark, Map, List } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { ImageWithFallback } from "@/components/common/ImageWithFallback";
 
 interface Recommendation {
   id: string;

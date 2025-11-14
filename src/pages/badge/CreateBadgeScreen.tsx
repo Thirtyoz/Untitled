@@ -1,8 +1,8 @@
 import { ArrowLeft, MapPin, Camera, Image as ImageIcon, CheckCircle2, Loader2 } from "lucide-react";
-import { Button } from "./ui/button";
-import { Textarea } from "./ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { ImageWithFallback } from "./figma/ImageWithFallback";
+import { ImageWithFallback } from "@/components/common/ImageWithFallback";
 
 interface CreateBadgeScreenProps {
   onBack: () => void;

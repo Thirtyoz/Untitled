@@ -1,5 +1,5 @@
 import { MapPin, Sparkles, RefreshCw } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "@/components/ui/button";
 
 interface BadgeResultScreenProps {
   onSave: () => void;
