@@ -6,11 +6,20 @@ interface MyPageScreenProps {
   onLogout: () => void;
   userNickname: string;
   userInterests: string[];
+  userEmail?: string;
   theme: "light" | "dark";
   onToggleTheme: () => void;
 }
 
-export function MyPageScreen({ onBack, onLogout, userNickname, userInterests, theme, onToggleTheme }: MyPageScreenProps) {
+export function MyPageScreen({
+  onBack,
+  onLogout,
+  userNickname,
+  userInterests,
+  userEmail,
+  theme,
+  onToggleTheme,
+}: MyPageScreenProps) {
   return (
     <div className={`min-h-screen flex flex-col ${
       theme === "dark" ? "bg-[#0a0e1a]" : "bg-white"
@@ -133,7 +142,7 @@ export function MyPageScreen({ onBack, onLogout, userNickname, userInterests, th
             </div>
             <div className="flex-1 min-w-0">
               <p className={`text-xs mb-0.5 ${theme === "dark" ? "text-slate-500" : "text-gray-600"}`}>Google 계정</p>
-              <p className={`text-sm truncate ${theme === "dark" ? "text-white" : "text-black"}`}>pinseoul@gmail.com</p>
+              <p className={`text-sm truncate ${theme === "dark" ? "text-white" : "text-black"}`}>{userEmail ?? "이메일 정보 없음"}</p>
             </div>
           </div>
         </div>

@@ -93,6 +93,7 @@ const routeDefinitions: RouteDefinition[] = [
       onLogout: handlers.handleLogout,
       userNickname: userInfo.nickname,
       userInterests: userInfo.interests,
+      userEmail: userInfo.email,
       onToggleTheme: handlers.toggleTheme,
     }),
   },

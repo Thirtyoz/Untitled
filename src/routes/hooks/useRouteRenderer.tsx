@@ -34,6 +34,9 @@ export function useRouteRenderer() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session?.user?.email) {
+        setUserInfo({ email: session.user.email });
+      }
       setHasCheckedSession(true);
     });
 
@@ -41,6 +44,11 @@ export function useRouteRenderer() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user?.email) {
+        setUserInfo({ email: session.user.email });
+      } else {
+        setUserInfo({ email: '' });
+      }
       setHasCheckedSession(true);
       if (!session?.user) {
         navigate("/login");
