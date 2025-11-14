@@ -1,5 +1,7 @@
 import { ArrowLeft, Share2, MapPin, Calendar, Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { SpinImageModal } from "@/components/SpinImageModal";
 
 interface Badge {
   id: number;
@@ -19,6 +21,8 @@ interface BadgeDetailScreenProps {
 }
 
 export function BadgeDetailScreen({ badge, isOpen, onClose, theme }: BadgeDetailScreenProps) {
+  const [isSpinModalOpen, setIsSpinModalOpen] = useState(false);
+
   if (!isOpen || !badge) return null;
 
   return (
@@ -62,10 +66,21 @@ export function BadgeDetailScreen({ badge, isOpen, onClose, theme }: BadgeDetail
           {/* Badge card */}
           <div className="mb-8 flex justify-center">
             <div className="relative">
-              <div className={`w-64 h-64 ${badge.color} rounded-3xl shadow-sm flex items-center justify-center border-2 border-white/50 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.3)]`}>
-                <div className="text-center">
-                  <span className="text-8xl filter drop-shadow-lg">{badge.emoji}</span>
-                </div>
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  console.log("Badge image clicked!");
+                  setIsSpinModalOpen(true);
+                }}
+                className={`w-64 h-64 rounded-3xl shadow-sm flex items-center justify-center border-2 border-white/50 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.3)] overflow-hidden cursor-pointer transition-transform hover:scale-105 active:scale-95 ${
+                  theme === "dark" ? "bg-slate-800" : "bg-gray-100"
+                }`}
+              >
+                <img
+                  src="/penguin.png"
+                  alt={badge.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           </div>
@@ -184,6 +199,15 @@ export function BadgeDetailScreen({ badge, isOpen, onClose, theme }: BadgeDetail
           </Button>
         </div>
       </div>
+
+      {/* Spin Image Modal */}
+      <SpinImageModal
+        isOpen={isSpinModalOpen}
+        onClose={() => setIsSpinModalOpen(false)}
+        imageUrl="/penguin.png"
+        imageName={badge.name}
+        theme={theme}
+      />
     </>
   );
 }

@@ -17,7 +17,7 @@ const routeDefinitions: RouteDefinition[] = [
   {
     path: "/login",
     component: LoginScreen,
-    guards: ["redirectIfAuthenticated"],
+    // guards: ["redirectIfAuthenticated"],
     getProps: ({ theme, navigate }) => ({
       theme,
       onLogin: () => navigate("/"),
@@ -26,7 +26,7 @@ const routeDefinitions: RouteDefinition[] = [
   {
     path: "/onboarding",
     component: OnboardingScreen,
-    guards: ["requireUser"],
+    // guards: ["requireUser"],
     getProps: ({ theme, handlers }) => ({
       theme,
       onComplete: handlers.handleOnboardingComplete,
@@ -46,7 +46,7 @@ const routeDefinitions: RouteDefinition[] = [
   {
     path: "/badge-detail",
     component: BadgeDetailScreen,
-    guards: ["requireUser"],
+    // guards: ["requireUser"],
     getProps: ({ theme, navigate }) => ({
       theme,
       onBack: () => navigate("/"),
@@ -55,7 +55,7 @@ const routeDefinitions: RouteDefinition[] = [
   {
     path: "/create-badge",
     component: CreateBadgeScreen,
-    guards: ["requireUser"],
+    // guards: ["requireUser"],
     getProps: ({ theme, navigate }) => ({
       theme,
       onBack: () => navigate("/"),
@@ -65,7 +65,7 @@ const routeDefinitions: RouteDefinition[] = [
   {
     path: "/badge-result",
     component: BadgeResultScreen,
-    guards: ["requireUser"],
+    // guards: ["requireUser"],
     getProps: ({ theme, navigate }) => ({
       theme,
       onSave: () => navigate("/"),
@@ -76,7 +76,7 @@ const routeDefinitions: RouteDefinition[] = [
     path: "/ai-recommend",
     component: AIRecommendScreen,
     withLayout: true,
-    guards: ["requireUser"],
+    // guards: ["requireUser"],
     getProps: ({ theme, navigate }) => ({
       theme,
       onBack: () => navigate("/"),

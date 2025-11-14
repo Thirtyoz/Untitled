@@ -2,6 +2,8 @@ import { MapPin, Plus, User, Sparkles } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { loadNaverMapsScript } from "@/utils/loadNaverMaps";
 import { BadgeDetailScreen } from "../badge/BadgeDetailScreen";
+// import { fetchAllLocations } from "@/services/locationService";
+import type { MapLocation } from "@/types/location";
 
 interface Badge {
   id: number;
@@ -19,54 +21,6 @@ interface HomeMapScreenProps {
   theme: "light" | "dark";
 }
 
-const MOCK_BADGES: Badge[] = [
-  {
-    id: 1,
-    name: "망원 한강공원",
-    location: { lat: 37.5518, lng: 126.8947 }, // Mangwon Hangang Park (실제 좌표)
-    date: "2024.03.15",
-    color: "bg-amber-400",
-    emoji: "🌅",
-    tags: ["#한강", "#일몰"],
-  },
-  {
-    id: 2,
-    name: "북촌 한옥마을",
-    location: { lat: 37.5825, lng: 126.9834 }, // Bukchon Hanok Village (실제 좌표)
-    date: "2024.03.10",
-    color: "bg-rose-400",
-    emoji: "🏠",
-    tags: ["#한옥", "#전통"],
-  },
-  {
-    id: 3,
-    name: "성수 카페거리",
-    location: { lat: 37.5447, lng: 127.0557 }, // Seongsu Cafe Street (실제 좌표)
-    date: "2024.03.08",
-    color: "bg-teal-400",
-    emoji: "☕",
-    tags: ["#카페", "#힙지로"],
-  },
-  {
-    id: 4,
-    name: "남산타워",
-    location: { lat: 37.5512, lng: 126.9882 }, // N Seoul Tower (실제 좌표)
-    date: "2024.03.05",
-    color: "bg-purple-400",
-    emoji: "🗼",
-    tags: ["#야경", "#랜드마크"],
-  },
-  {
-    id: 5,
-    name: "이태원 경리단길",
-    location: { lat: 37.5340, lng: 126.9947 }, // Gyeongnidan-gil, Itaewon (실제 좌표)
-    date: "2024.03.01",
-    color: "bg-blue-400",
-    emoji: "🍜",
-    tags: ["#맛집", "#다이닝"],
-  },
-];
-
 const MIN_SHEET_HEIGHT = 200;
 const DEFAULT_MAX_HEIGHT = 600;
 
@@ -83,6 +37,39 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
   const dragStartYRef = useRef<number | null>(null);
   const startHeightRef = useRef<number>(MIN_SHEET_HEIGHT);
   const isDraggingRef = useRef(false);
+
+  const [locations] = useState<MapLocation[]>([
+    {
+      id: '1',
+      name: '남산타워',
+      type: 'festival',
+      location: { lat: 37.5512, lng: 126.9882 },
+      description: '서울의 대표적인 랜드마크',
+      address: '서울특별시 용산구 남산공원길 105',
+      date: '2024.11.14',
+      imageUrl: '/penguin.png'
+    }
+  ]);
+  const [isLoading] = useState(false);
+
+  // API에서 데이터 가져오기 (주석처리)
+  // useEffect(() => {
+  //   const loadLocations = async () => {
+  //     setIsLoading(true);
+  //     try {
+  //       const data = await fetchAllLocations();
+  //       setLocations(data);
+  //       console.log(`Loaded ${data.length} locations from Supabase`);
+  //     } catch (error) {
+  //       console.error('Error loading locations:', error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   loadLocations();
+  // }, []);
+
+  const [mapInitialized, setMapInitialized] = useState(false);
 
   // Load Naver Maps script and initialize map
   useEffect(() => {
@@ -121,11 +108,13 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
         const map = new naver.maps.Map(mapRef.current, mapOptions);
         naverMapRef.current = map;
 
-        console.log(map);
         // Set max bounds to restrict dragging to Seoul area
         map.setOptions({
           maxBounds: seoulBounds
         });
+
+        // Mark map as initialized
+        setMapInitialized(true);
 
         // Add bounds check on map movement to ensure user stays within Seoul
         const SEOUL_MIN_LAT = 37.413294;
@@ -159,41 +148,6 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
             map.setCenter(new naver.maps.LatLng(lat, lng));
           }
         });
-
-        // Add markers for each badge
-        const newMarkers = MOCK_BADGES.map((badge) => {
-          // Create custom HTML marker
-          const markerElement = document.createElement('div');
-          markerElement.className = 'custom-marker';
-          markerElement.innerHTML = `
-            <div class="relative ${theme === "dark" ? "drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]" : "drop-shadow-lg"}">
-              <div class="${badge.color} w-16 h-16 rounded-2xl flex flex-col items-center justify-center border-2 border-white/50 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.3)] transform transition-all hover:rotate-2 hover:scale-110 cursor-pointer">
-                <span class="text-2xl filter drop-shadow-sm">${badge.emoji}</span>
-              </div>
-              <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-12 h-2 rounded-full blur-sm ${theme === "dark" ? "bg-black/40" : "bg-black/20"}"></div>
-            </div>
-          `;
-
-          const marker = new naver.maps.Marker({
-            position: new naver.maps.LatLng(badge.location.lat, badge.location.lng),
-            map: map,
-            icon: {
-              content: markerElement.outerHTML,
-              anchor: new naver.maps.Point(32, 64),
-            },
-            clickable: true,
-          });
-
-          // Add click event
-          naver.maps.Event.addListener(marker, 'click', () => {
-            setSelectedBadge(badge);
-            setIsModalOpen(true);
-          });
-
-          return marker;
-        });
-
-        markersRef.current = newMarkers;
       } catch (error) {
         console.error('Failed to load Naver Maps:', error);
       }
@@ -210,7 +164,75 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
         naverMapRef.current = null;
       }
     };
-  }, [theme]);
+  }, []);
+
+  // Add markers when map is initialized and locations are loaded
+  useEffect(() => {
+    if (!mapInitialized || !naverMapRef.current || !window.naver || locations.length === 0) {
+      console.log('Map not ready or no locations:', { mapInitialized, hasMap: !!naverMapRef.current, hasNaver: !!window.naver, locationsCount: locations.length });
+      return;
+    }
+
+    const map = naverMapRef.current;
+
+    // Clear existing markers
+    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current = [];
+
+    // Add new markers for real locations
+    const newMarkers = locations.map((location) => {
+      // Determine marker style based on location type
+      const isPaths = location.type === 'path';
+      const markerColor = isPaths ? 'bg-green-500' : 'bg-orange-500';
+      const markerIcon = isPaths ? '🚶' : '🎉';
+
+      // Create custom HTML marker
+      const markerElement = document.createElement('div');
+      markerElement.className = 'custom-marker';
+      markerElement.innerHTML = `
+        <div class="relative ${theme === "dark" ? "drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]" : "drop-shadow-lg"}">
+          <div class="${markerColor} w-12 h-12 rounded-xl flex flex-col items-center justify-center border-2 border-white/50 shadow-lg transform transition-all hover:scale-110 cursor-pointer">
+            <span class="text-xl filter drop-shadow-sm">${markerIcon}</span>
+          </div>
+          <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-8 h-2 rounded-full blur-sm ${theme === "dark" ? "bg-black/40" : "bg-black/20"}"></div>
+        </div>
+      `;
+
+      const marker = new naver.maps.Marker({
+        position: new naver.maps.LatLng(location.location.lat, location.location.lng),
+        map: map,
+        icon: {
+          content: markerElement.outerHTML,
+          anchor: new naver.maps.Point(24, 48),
+        },
+        clickable: true,
+      });
+
+      // Add click event to show location info and open modal
+      naver.maps.Event.addListener(marker, 'click', () => {
+        console.log('Selected location:', location);
+
+        // Convert MapLocation to Badge format for modal
+        const badge: Badge = {
+          id: parseInt(location.id) || 1,
+          name: location.name,
+          location: location.location,
+          date: location.date || new Date().toLocaleDateString('ko-KR'),
+          color: location.type === 'path' ? 'green' : 'orange',
+          emoji: location.type === 'path' ? '🚶' : '🎉',
+          tags: [location.type === 'path' ? '산책로' : '축제']
+        };
+
+        setSelectedBadge(badge);
+        setIsModalOpen(true);
+      });
+
+      return marker;
+    });
+
+    markersRef.current = newMarkers;
+    console.log(`Added ${newMarkers.length} markers to map`);
+  }, [mapInitialized, locations, theme, setSelectedBadge, setIsModalOpen]);
 
   useEffect(() => {
     const updateMaxHeight = () => {
@@ -339,21 +361,54 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
 
         {/* Sheet header */}
         <div className="px-6 pb-3 flex items-center justify-between">
-          <h3 className={theme === "dark" ? "text-white" : "text-black"}>최근 수집한 배지</h3>
-          <span className={`text-sm ${theme === "dark" ? "text-slate-400" : "text-gray-600"}`}>{MOCK_BADGES.length}개</span>
+          <h3 className={theme === "dark" ? "text-white" : "text-black"}>서울 명소</h3>
+          <span className={`text-sm ${theme === "dark" ? "text-slate-400" : "text-gray-600"}`}>
+            {isLoading ? '로딩 중...' : `${locations.length}개`}
+          </span>
         </div>
 
-        {/* Badge list */}
-        <div
-          className="px-6 pb-6 space-y-3 overflow-y-auto"
+        {/* Location list */}
+        <div className="px-6 pb-6 space-y-3 overflow-y-auto"
           style={{ maxHeight: `${Math.max(sheetHeight - 140, 120)}px` }}
-        >
-          {MOCK_BADGES.map((badge) => (
+          >
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className={`text-sm ${theme === "dark" ? "text-slate-400" : "text-gray-600"}`}>
+                데이터를 불러오는 중...
+              </div>
+            </div>
+          ) : locations.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <div className={`text-sm ${theme === "dark" ? "text-slate-400" : "text-gray-600"}`}>
+                데이터가 없습니다
+              </div>
+            </div>
+          ) : locations.length > 0 ? (
             <div
-              key={badge.id}
+              key={locations[0].id}
               onClick={() => {
+                const firstLocation = locations[0];
+
+                // Convert MapLocation to Badge format for modal
+                const badge: Badge = {
+                  id: parseInt(firstLocation.id) || 1,
+                  name: firstLocation.name,
+                  location: firstLocation.location,
+                  date: firstLocation.date || new Date().toLocaleDateString('ko-KR'),
+                  color: firstLocation.type === 'path' ? 'green' : 'orange',
+                  emoji: firstLocation.type === 'path' ? '🚶' : '🎉',
+                  tags: [firstLocation.type === 'path' ? '산책로' : '축제']
+                };
+
                 setSelectedBadge(badge);
                 setIsModalOpen(true);
+
+                if (naverMapRef.current) {
+                  naverMapRef.current.setCenter(
+                    new naver.maps.LatLng(firstLocation.location.lat, firstLocation.location.lng)
+                  );
+                  naverMapRef.current.setZoom(15);
+                }
               }}
               className={`w-full rounded-xl p-3 flex items-center gap-3 transition-colors border cursor-pointer ${
                 theme === "dark"
@@ -361,23 +416,38 @@ export function HomeMapScreen({ onNavigate, userNickname, theme }: HomeMapScreen
                   : "bg-white hover:bg-gray-50 border-gray-200"
               }`}
             >
-              {/* Badge image */}
-              <div className={`${badge.color} w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 border-2 border-white/50 shadow-[inset_0_-2px_4px_rgba(0,0,0,0.1),inset_0_2px_4px_rgba(255,255,255,0.3)]`}>
-                <span className="text-2xl">{badge.emoji}</span>
+              {/* Location image */}
+              <div className="w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden border-2 border-white/50 shadow-lg">
+                <img
+                  src="/penguin.png"
+                  alt={locations[0].name}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="flex-1 text-left min-w-0">
-                <p className={`text-sm mb-1 truncate ${theme === "dark" ? "text-white" : "text-black"}`}>{badge.name}</p>
-                <p className={`text-xs mb-1 ${theme === "dark" ? "text-slate-400" : "text-gray-600"}`}>{badge.date}</p>
+                <p className={`text-sm mb-1 truncate font-medium ${theme === "dark" ? "text-white" : "text-black"}`}>
+                  {locations[0].name}
+                </p>
+                <p className={`text-xs mb-1 truncate ${theme === "dark" ? "text-slate-400" : "text-gray-600"}`}>
+                  {locations[0].address || locations[0].description}
+                </p>
                 <div className="flex gap-2 flex-wrap">
-                  {badge.tags.map((tag) => (
-                    <span key={tag} className={`text-xs ${theme === "dark" ? "text-slate-500" : "text-gray-500"}`}>
-                      {tag}
+                  <span className={`text-xs px-2 py-0.5 rounded ${
+                    locations[0].type === 'path'
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-orange-500/20 text-orange-400'
+                  }`}>
+                    {locations[0].type === 'path' ? '산책로' : '축제'}
+                  </span>
+                  {locations[0].date && (
+                    <span className={`text-xs ${theme === "dark" ? "text-slate-500" : "text-gray-500"}`}>
+                      {locations[0].date}
                     </span>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
-          ))}
+          ) : null}
         </div>
       </div>
 

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Spin Photo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    .scene {
+      width: min(80vw, 420px);
+      perspective: 1200px;
+      touch-action: none; /* 터치 스크롤 방지 & 드래그 인식 */
+    }
+
+    .card {
+      position: relative;
+      width: 100%;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 26px 40px rgba(0, 0, 0, 0.18);
+      transform-style: preserve-3d;
+      transition: box-shadow 0.2s ease;
+      cursor: grab;
+    }
+
+    .card:active {
+      cursor: grabbing;
+      box-shadow: 0 18px 26px rgba(0, 0, 0, 0.25);
+    }
+
+    .card img {
+      display: block;
+      width: 100%;
+      height: auto;
+      pointer-events: none;
+      background: #eee;
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <div class="card" id="spinCard">
+      <!-- 이미지 파일 이름을 실제 파일명으로 바꿔주세요 -->
+      <img src="photo.png" alt="spin image" />
+    </div>
+  </div>
+
+  <script>
+    const card = document.getElementById("spinCard");
+
+    let isPointerDown = false;
+    let lastX = 0;
+    let lastY = 0;
+    let rotX = 10; // 약간 기울어진 기본값
+    let rotY = -10;
+    let velX = 0;
+    let velY = 0;
+    let lastTime = 0;
+    let inertiaId = null;
+
+    const ROT_FACTOR = 0.35; // 회전 민감도
+    const FRICTION = 0.94; // 관성 감쇠
+
+    // 처음 기본 각도 적용
+    card.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+
+    function updateTransform() {
+      card.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    }
+
+    function stopInertia() {
+      if (inertiaId !== null) {
+        cancelAnimationFrame(inertiaId);
+        inertiaId = null;
+      }
+    }
+
+    function startInertia() {
+      stopInertia();
+      function frame() {
+        velX *= FRICTION;
+        velY *= FRICTION;
+
+        // 속도가 충분히 느려지면 종료
+        if (Math.abs(velX) < 0.001 && Math.abs(velY) < 0.001) {
+          stopInertia();
+          return;
+        }
+
+        // 속도를 각도로 변환 (대략 16ms/frame 기준)
+        const dt = 16;
+        rotY += velX * dt * ROT_FACTOR;
+        rotX -= velY * dt * ROT_FACTOR;
+
+        // X축 회전(위/아래) 제한 (너무 뒤집히지 않게)
+        rotX = Math.max(-60, Math.min(60, rotX));
+
+        updateTransform();
+        inertiaId = requestAnimationFrame(frame);
+      }
+
+      inertiaId = requestAnimationFrame(frame);
+    }
+
+    card.addEventListener("pointerdown", (e) => {
+      isPointerDown = true;
+      card.setPointerCapture(e.pointerId);
+      stopInertia();
+
+      lastX = e.clientX;
+      lastY = e.clientY;
+      lastTime = performance.now();
+    });
+
+    card.addEventListener("pointermove", (e) => {
+      if (!isPointerDown) return;
+
+      const now = performance.now();
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      const dt = now - lastTime || 16;
+
+      // 이동량에 비례해서 바로 회전
+      rotY += dx * ROT_FACTOR;
+      rotX -= dy * ROT_FACTOR;
+      rotX = Math.max(-60, Math.min(60, rotX)); // 위/아래 제한
+
+      // 속도 계산 (px/ms)
+      velX = dx / dt;
+      velY = dy / dt;
+
+      lastX = e.clientX;
+      lastY = e.clientY;
+      lastTime = now;
+
+      updateTransform();
+    });
+
+    function pointerEnd(e) {
+      if (!isPointerDown) return;
+      isPointerDown = false;
+      card.releasePointerCapture(e.pointerId);
+      startInertia(); // 손가락/마우스를 떼면 관성 시작
+    }
+
+    card.addEventListener("pointerup", pointerEnd);
+    card.addEventListener("pointercancel", pointerEnd);
+    card.addEventListener("pointerleave", (e) => {
+      if (isPointerDown) pointerEnd(e);
+    });
+  </script>
+</body>
+</html>
