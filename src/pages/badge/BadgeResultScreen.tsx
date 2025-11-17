@@ -1,12 +1,60 @@
 import { MapPin, Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "react-router-dom";
+import { ImageWithFallback } from "@/components/common/ImageWithFallback";
 
 interface BadgeResultScreenProps {
   onSave: () => void;
   onRegenerate: () => void;
 }
 
+interface BadgeData {
+  imageUrl: string;
+  description: string;
+  tags: string[];
+  location: string;
+}
+
 export function BadgeResultScreen({ onSave, onRegenerate }: BadgeResultScreenProps) {
+  const location = useLocation();
+  const badgeData = location.state as BadgeData | null;
+
+  // Default data if no state passed
+  const imageUrl = badgeData?.imageUrl || "";
+  const description = badgeData?.description || "합정 카페거리";
+  const tags = badgeData?.tags || ["#카페투어", "#힙한동네", "#데이트"];
+  const locationText = badgeData?.location || "서울시 마포구 합정동";
+
+  const handleSave = async () => {
+    if (!imageUrl) {
+      alert("저장할 이미지가 없습니다.");
+      return;
+    }
+
+    try {
+      // Fetch the image as blob
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `pinseoul-badge-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      // Call the original onSave callback
+      onSave();
+    } catch (error) {
+      console.error("Failed to download image:", error);
+      alert("이미지 다운로드에 실패했습니다.");
+    }
+  };
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
@@ -24,41 +72,52 @@ export function BadgeResultScreen({ onSave, onRegenerate }: BadgeResultScreenPro
 
         {/* Generated Badge */}
         <div className="mb-8 relative">
-          <div className="w-72 h-72 bg-black rounded-3xl shadow-sm flex flex-col items-center justify-center p-6">
-            <MapPin className="w-28 h-28 text-white mb-4" fill="white" strokeWidth={1.5} />
-            <p className="text-white text-2xl text-center mb-2">합정 카페거리</p>
-            <p className="text-white/60 text-sm">Hapjeong Cafe Street</p>
-          </div>
+          {imageUrl ? (
+            <div className="w-72 h-72 rounded-3xl shadow-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+              <ImageWithFallback
+                src={imageUrl}
+                alt="생성된 배지"
+                className="w-full h-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="w-72 h-72 bg-black rounded-3xl shadow-sm flex flex-col items-center justify-center p-6">
+              <MapPin className="w-28 h-28 text-white mb-4" fill="white" strokeWidth={1.5} />
+              <p className="text-white text-2xl text-center mb-2">{description}</p>
+              <p className="text-white/60 text-sm">AI Generated Badge</p>
+            </div>
+          )}
         </div>
 
         {/* Badge info */}
         <div className="w-full bg-gray-50 rounded-2xl p-5 border border-gray-200 space-y-3 mb-6">
           <div className="flex items-center justify-between">
-            <span className="text-gray-600 text-sm">장소</span>
-            <span className="text-black">합정 카페거리</span>
+            <span className="text-gray-600 text-sm">설명</span>
+            <span className="text-black">{description}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-gray-600 text-sm">위치</span>
-            <span className="text-black">서울시 마포구 합정동</span>
+            <span className="text-black">{locationText}</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-gray-600 text-sm">날짜</span>
-            <span className="text-black">2024.11.13</span>
+            <span className="text-black">{new Date().toLocaleDateString('ko-KR')}</span>
           </div>
-          <div className="pt-3 border-t border-gray-200">
-            <p className="text-gray-600 text-sm mb-2">키워드</p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 bg-white text-gray-700 rounded-full text-sm border border-gray-300">
-                #카페투어
-              </span>
-              <span className="px-3 py-1 bg-white text-gray-700 rounded-full text-sm border border-gray-300">
-                #힙한동네
-              </span>
-              <span className="px-3 py-1 bg-white text-gray-700 rounded-full text-sm border border-gray-300">
-                #데이트
-              </span>
+          {tags.length > 0 && (
+            <div className="pt-3 border-t border-gray-200">
+              <p className="text-gray-600 text-sm mb-2">키워드</p>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-white text-gray-700 rounded-full text-sm border border-gray-300"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Helper text */}
@@ -70,7 +129,7 @@ export function BadgeResultScreen({ onSave, onRegenerate }: BadgeResultScreenPro
       {/* Bottom actions */}
       <div className="px-6 pb-10 pt-4 border-t border-gray-100 space-y-3">
         <Button
-          onClick={onSave}
+          onClick={handleSave}
           className="w-full h-12 bg-[#FF6B35] hover:bg-[#E55A2B] text-white rounded-full"
         >
           저장하기
