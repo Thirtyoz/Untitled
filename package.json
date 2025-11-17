@@ -32,6 +32,7 @@
             "@radix-ui/react-tooltip": "^1.1.8",
             "@supabase/supabase-js": "^2.81.1",
             "@tailwindcss/postcss": "^4.1.17",
+            "antd-mobile": "^5.41.1",
             "autoprefixer": "^10.4.22",
             "class-variance-authority": "^0.7.1",
             "clsx": "*",
