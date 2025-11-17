@@ -59,7 +59,12 @@ const routeDefinitions: RouteDefinition[] = [
     getProps: ({ theme, navigate }) => ({
       theme,
       onBack: () => navigate("/"),
-      onComplete: () => navigate("/badge-result"),
+      onComplete: (badgeData: {
+        imageUrl: string;
+        description: string;
+        tags: string[];
+        location: string;
+      }) => navigate("/badge-result", { state: badgeData }),
     }),
   },
   {

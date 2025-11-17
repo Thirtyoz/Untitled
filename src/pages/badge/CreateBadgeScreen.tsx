@@ -1,6 +1,5 @@
 import {
   MapPin,
-  Camera,
   Image as ImageIcon,
   CheckCircle2,
   Loader2,
@@ -13,10 +12,16 @@ import { StyledButton } from "@/components/common/StyledButton";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageWithFallback } from "@/components/common/ImageWithFallback";
 import { cn } from "@/components/ui/utils";
+import { generateBadgeImage, createBadgePrompt } from "@/services/geminiImageService";
 
 interface CreateBadgeScreenProps {
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (badgeData: {
+    imageUrl: string;
+    description: string;
+    tags: string[];
+    location: string;
+  }) => void;
   theme?: "light" | "dark";
 }
 
@@ -37,9 +42,11 @@ export function CreateBadgeScreen({
 }: CreateBadgeScreenProps) {
   const [gpsVerified, setGpsVerified] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
-  const [photoUploaded, setPhotoUploaded] = useState(false);
   const [description, setDescription] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [imageGenerating, setImageGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState("");
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
 
   const handleGPSVerify = () => {
     setGpsLoading(true);
@@ -57,7 +64,59 @@ export function CreateBadgeScreen({
     }
   };
 
-  const canSubmit = gpsVerified && photoUploaded && description.trim();
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      alert("이미지 파일만 업로드 가능합니다.");
+      return;
+    }
+
+    // Create object URL for preview
+    const objectUrl = URL.createObjectURL(file);
+    setUploadedImageUrl(objectUrl);
+  };
+
+  const canSubmit = gpsVerified && uploadedImageUrl && description.trim();
+
+  const handleSubmit = async () => {
+    if (!uploadedImageUrl) {
+      alert("사진을 먼저 업로드해주세요!");
+      return;
+    }
+
+    setImageGenerating(true);
+    setGenerationProgress("업로드된 사진을 기반으로 AI 배지 생성 중...");
+
+    try {
+      const prompt = createBadgePrompt(description, selectedTags, true);
+      console.log("=== AI 배지 생성 프롬프트 ===");
+      console.log(prompt);
+      console.log("=========================");
+
+      const result = await generateBadgeImage({
+        prompt,
+        sourceImageUrl: uploadedImageUrl,
+        onProgress: (message) => {
+          setGenerationProgress(message);
+        },
+      });
+
+      onComplete({
+        imageUrl: result.dataUrl,
+        description: description,
+        tags: selectedTags,
+        location: "서울시 마포구 합정동",
+      });
+    } catch (error) {
+      console.error("Image generation failed:", error);
+      alert("이미지 생성에 실패했습니다. 다시 시도해주세요.");
+      setImageGenerating(false);
+      setGenerationProgress("");
+    }
+  };
 
   return (
     <div
@@ -212,86 +271,80 @@ export function CreateBadgeScreen({
             </h3>
           </div>
 
-          {!photoUploaded ? (
-            <div className="space-y-3">
+          <div className="space-y-3">
               <div
                 className={cn(
-                  "aspect-[4/3] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3",
+                  "aspect-[4/3] rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-3 relative",
                   theme === "dark"
                     ? "bg-slate-800/50 border-slate-600"
                     : "bg-white border-gray-300"
                 )}
                 aria-label="사진 업로드 영역"
               >
-                <ImageIcon
-                  className={cn(
-                    "w-12 h-12",
-                    theme === "dark" ? "text-slate-500" : "text-gray-400"
-                  )}
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                />
-                <p
-                  className={cn(
-                    "text-sm",
-                    theme === "dark" ? "text-slate-400" : "text-gray-500"
-                  )}
-                >
-                  사진을 추가해주세요
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <StyledButton
-                  onClick={() => setPhotoUploaded(true)}
-                  variant="secondary"
-                  theme={theme}
-                  size="md"
-                  aria-label="사진 찍기"
-                >
-                  <Camera className="w-4 h-4" strokeWidth={1.5} aria-hidden="true" />
-                  사진 찍기
-                </StyledButton>
-                <StyledButton
-                  onClick={() => setPhotoUploaded(true)}
-                  variant="secondary"
-                  theme={theme}
-                  size="md"
-                  aria-label="앨범에서 선택"
-                >
-                  <ImageIcon className="w-4 h-4" strokeWidth={1.5} aria-hidden="true" />
-                  앨범에서 선택
-                </StyledButton>
-              </div>
-            </div>
-          ) : (
-            <div className="relative">
-              <div
-                className={cn(
-                  "aspect-[4/3] rounded-xl overflow-hidden border",
-                  theme === "dark" ? "border-slate-700" : "border-gray-200"
+                {uploadedImageUrl ? (
+                  <>
+                    <ImageWithFallback
+                      src={uploadedImageUrl}
+                      alt="업로드된 사진"
+                      className="w-full h-full object-cover rounded-xl"
+                    />
+                    <button
+                      onClick={() => {
+                        setUploadedImageUrl(null);
+                      }}
+                      className={cn(
+                        "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-md transition-all duration-200",
+                        "outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B35] focus-visible:ring-offset-2",
+                        theme === "dark"
+                          ? "bg-slate-800 text-white hover:bg-slate-700"
+                          : "bg-white text-black hover:bg-gray-100"
+                      )}
+                      aria-label="사진 삭제"
+                    >
+                      ✕
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <ImageIcon
+                      className={cn(
+                        "w-12 h-12",
+                        theme === "dark" ? "text-slate-500" : "text-gray-400"
+                      )}
+                      strokeWidth={1.5}
+                      aria-hidden="true"
+                    />
+                    <p
+                      className={cn(
+                        "text-sm",
+                        theme === "dark" ? "text-slate-400" : "text-gray-500"
+                      )}
+                    >
+                      사진을 추가해주세요
+                    </p>
+                  </>
                 )}
-              >
-                <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1552723690-81d6a52f37de?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxLb3JlYW4lMjBjYWZlJTIwYWVzdGhldGljfGVufDF8fHx8MTc2MzAzNTY0N3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                  alt="업로드된 사진"
-                  className="w-full h-full object-cover"
-                />
               </div>
-              <button
-                onClick={() => setPhotoUploaded(false)}
-                className={cn(
-                  "absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-sm shadow-md transition-all duration-200",
-                  "outline-none focus-visible:ring-2 focus-visible:ring-[#FF6B35] focus-visible:ring-offset-2",
-                  theme === "dark"
-                    ? "bg-slate-800 text-white hover:bg-slate-700"
-                    : "bg-white text-black hover:bg-gray-100"
-                )}
-                aria-label="사진 삭제"
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                style={{ display: 'none' }}
+                disabled={imageGenerating}
+                id="file-upload-input"
+              />
+              <StyledButton
+                onClick={() => document.getElementById('file-upload-input')?.click()}
+                variant="secondary"
+                theme={theme}
+                fullWidth
+                disabled={imageGenerating}
+                aria-label="앨범에서 선택"
               >
-                ✕
-              </button>
+                <ImageIcon className="w-4 h-4" strokeWidth={1.5} aria-hidden="true" />
+                앨범에서 선택
+              </StyledButton>
             </div>
-          )}
         </Card>
 
         {/* Step 3: Description & Keywords */}
@@ -375,13 +428,20 @@ export function CreateBadgeScreen({
         )}
       >
         <StyledButton
-          onClick={onComplete}
-          disabled={!canSubmit}
+          onClick={handleSubmit}
+          disabled={!canSubmit || imageGenerating}
           variant="primary"
           fullWidth
           className="h-12"
         >
-          AI 배지 생성하기
+          {imageGenerating ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {generationProgress || "AI 배지 생성 중..."}
+            </div>
+          ) : (
+            "AI 배지 생성하기"
+          )}
         </StyledButton>
       </div>
     </div>
