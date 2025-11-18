@@ -1,5 +1,5 @@
-import { MapPin, Plus, User, Sparkles, ChevronUp, ArrowLeft, Share2, Phone, Clock, Navigation, Bus, Info, ChevronDown } from "lucide-react";
-import { Button } from "./ui/button";
+import { MapPin, User, ChevronUp, ArrowLeft, Share2, Phone, Clock, Navigation, Bus, Info, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Tag } from "lucide-react";
 import seoulMapImage from "figma:asset/abc96f1f08e4b34243edea143bbf3d188381c4b6.png";

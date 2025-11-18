@@ -25,15 +25,25 @@ export function PlaceDetailModal({ badge, location, isOpen, onClose, onVerify, t
   if (!isOpen || !badge || !location) return null;
 
   return (
-    <div className={`fixed inset-0 z-[9999] flex flex-col ${
-      theme === "dark" ? "bg-[#0a0e1a]" : "bg-white"
-    }`}>
-      {/* Header */}
-      <div className={`px-6 py-4 flex items-center justify-between border-b ${
-        theme === "dark"
-          ? "border-slate-800 bg-[#0a0e1a]"
-          : "border-gray-200 bg-white"
-      }`}>
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/50 transition-opacity"
+        style={{ zIndex: 9998 }}
+        onClick={onClose}
+      />
+
+      {/* Modal Sheet */}
+      <div
+        className={`fixed inset-x-0 bottom-0 rounded-t-3xl shadow-2xl transition-transform duration-300 flex flex-col ${
+          theme === "dark" ? "bg-slate-900" : "bg-white"
+        }`}
+        style={{ zIndex: 9999, maxHeight: '85vh' }}
+      >
+        {/* Header */}
+        <div className={`px-6 py-4 flex items-center justify-between border-b flex-shrink-0 ${
+          theme === "dark" ? "border-slate-800" : "border-gray-200"
+        }`}>
         <button onClick={onClose} className={theme === "dark" ? "text-white" : "text-black"}>
           <ArrowLeft className="w-6 h-6" strokeWidth={1.5} />
         </button>
@@ -43,8 +53,8 @@ export function PlaceDetailModal({ badge, location, isOpen, onClose, onVerify, t
         </button>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto px-6 py-8 pb-32">
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-8" style={{ minHeight: 0 }}>
         {/* Badge image */}
         <div className="mb-8 flex justify-center">
           <div className="relative drop-shadow-lg">
@@ -58,12 +68,10 @@ export function PlaceDetailModal({ badge, location, isOpen, onClose, onVerify, t
           </div>
         </div>
 
-        {/* Place information */}
-        <div className={`rounded-2xl p-6 border space-y-5 ${
-          theme === "dark"
-            ? "bg-slate-900 border-slate-800"
-            : "bg-gray-50 border-gray-200"
-        }`}>
+          {/* Place information */}
+          <div className={`rounded-2xl p-6 border space-y-5 ${
+            theme === "dark" ? "bg-slate-800/50 border-slate-700" : "bg-gray-50 border-gray-200"
+          }`}>
           {/* Place name */}
           <div>
             <h2 className={`text-3xl mb-1 ${
@@ -205,21 +213,22 @@ export function PlaceDetailModal({ badge, location, isOpen, onClose, onVerify, t
                 ))}
               </div>
             </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Bottom button */}
-      <div className={`px-6 pb-10 pt-4 border-t z-10 ${
-        theme === "dark" ? "border-slate-800 bg-[#0a0e1a]" : "border-gray-100 bg-white"
-      }`}>
-        <Button
-          onClick={onVerify}
-          className="w-full h-12 rounded-full bg-[#FF6B35] hover:bg-[#E55A2B] text-white"
-        >
-          인증하기
-        </Button>
+        {/* Bottom button */}
+        <div className={`px-6 pb-10 pt-4 border-t flex-shrink-0 ${
+          theme === "dark" ? "border-slate-800" : "border-gray-100"
+        }`}>
+          <Button
+            onClick={onVerify}
+            className="w-full h-12 rounded-full bg-[#FF6B35] hover:bg-[#E55A2B] text-white"
+          >
+            인증하기
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
