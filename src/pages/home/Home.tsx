@@ -2,7 +2,7 @@ import { MapPin, Plus, User, Navigation } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { loadNaverMapsScript } from "@/utils/loadNaverMaps";
 import { BadgeDetailScreen } from "../badge/BadgeDetailScreen";
-import { FloatingPanel, type FloatingPanelRef, JumboTabs } from "antd-mobile";
+import { FloatingPanel, type FloatingPanelRef, JumboTabs, Toast } from "antd-mobile";
 import { fetchAllLocations } from "@/services/locationService";
 import type { MapLocation } from "@/types/location";
 import { HomeLoading } from "@/pages/home/Loading/HomeLoading";
@@ -313,6 +313,57 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
     floatingPanelRef.current?.setHeight(320, { immediate: true });
   }, []);
 
+  // 내 위치로 이동하는 함수
+  const handleMoveToMyLocation = () => {
+    if (navigator.geolocation && naverMapRef.current) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log(latitude,longitude)
+
+          // 서울 경계 체크
+          const SEOUL_MIN_LAT = 37.413294;
+          const SEOUL_MAX_LAT = 37.715133;
+          const SEOUL_MIN_LNG = 126.734086;
+          const SEOUL_MAX_LNG = 127.269311;
+
+          // 현재 위치가 서울 경계 내에 있는지 확인
+          const isInSeoul =
+            latitude >= SEOUL_MIN_LAT &&
+            latitude <= SEOUL_MAX_LAT &&
+            longitude >= SEOUL_MIN_LNG &&
+            longitude <= SEOUL_MAX_LNG;
+
+          console.log(isInSeoul)
+
+          if (!isInSeoul) {
+            Toast.show({
+              content: <div style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>서울시 내에서만 이용이 가능합니다</div>,
+              position: 'top',
+              icon: 'fail',
+              duration: 2000,
+              getContainer: () => document.body,
+            })
+            return;
+          }
+
+          naverMapRef.current?.setCenter(new naver.maps.LatLng(latitude, longitude));
+          naverMapRef.current?.setZoom(15);
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          Toast.show({
+            content: <div style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>위치 정보를 가져올 수 없습니다</div>,
+            position: 'top',
+            icon: 'fail',
+            duration: 2000,
+            getContainer: () => document.body,
+          })
+        }
+      );
+    }
+  };
+
   return (
     <div className={`h-screen flex flex-col overflow-hidden ${
       theme === "dark" ? "bg-[#0a0e1a]" : "bg-white"
@@ -359,39 +410,25 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
 
         {/* My Location button - FloatingPanel 위에 동적으로 위치 */}
         <button
-          onClick={() => {
-            if (navigator.geolocation && naverMapRef.current) {
-              navigator.geolocation.getCurrentPosition(
-                (position) => {
-                  const { latitude, longitude } = position.coords;
-                  naverMapRef.current?.setCenter(new naver.maps.LatLng(latitude, longitude));
-                  naverMapRef.current?.setZoom(15);
-                },
-                (error) => {
-                  console.error('Error getting location:', error);
-                  alert('위치 정보를 가져올 수 없습니다.');
-                }
-              );
-            }
-          }}
+          onClick={handleMoveToMyLocation}
           style={{
             bottom: `${panelHeight + 16}px`,
             transition: 'bottom 0s'
           }}
-          className={`absolute right-6 w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-all duration-200 z-40 ${
-            theme === "dark" ? "bg-slate-800 text-white" : "bg-white text-black"
+          className={`absolute right-6 w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-all duration-200 z-40 ${
+            theme === "dark" ? "bg-slate-800 text-white hover:bg-slate-700 active:bg-slate-900" : "bg-white text-black hover:bg-gray-50 active:bg-gray-100"
           }`}
         >
           <Navigation className="w-5 h-5" strokeWidth={1.5} />
         </button>
 
         {/* Floating action button */}
-        <button
+        {/* <button
           onClick={() => onNavigate("create-badge")}
           className="absolute bottom-6 right-6 w-14 h-14 rounded-full bg-[#FF6B35] shadow-sm flex items-center justify-center group hover:bg-[#E55A2B] transition-all duration-200 z-10"
         >
           <Plus className="w-7 h-7 text-white group-hover:rotate-90 transition-transform duration-300" strokeWidth={1.5} />
-        </button>
+        </button> */}
 
         {/* FloatingPanel with location list */}
         <FloatingPanel

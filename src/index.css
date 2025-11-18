@@ -1,1 +1,33 @@
 @import "tailwindcss";
+
+/* Toast 레이아웃 및 아이콘 크기 조정 */
+body > div[class*="adm-toast"] {
+  top: 16px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 9999 !important;
+}
+
+.adm-toast-main {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 8px 16px !important;
+  min-width: fit-content !important;
+  margin: 0 auto !important;
+}
+
+.adm-toast-icon {
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+}
+
+.adm-toast-icon svg {
+  width: 16px !important;
+  height: 16px !important;
+}
