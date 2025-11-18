@@ -41,6 +41,9 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
   // 내 배지로 표시할 장소들 (conts_name 기준) - state로 관리
   const [myBadges, setMyBadges] = useState<string[]>(['창덕궁', '동대문디자인플라자(DDP)', '서울어린이대공원 음악분수']);
 
+  // AI 추천 목록을 별도 state로 관리하여 리렌더링 시에도 유지
+  const [aiRecommendations, setAiRecommendations] = useState<MapLocation[]>([]);
+
   // 탭에 따라 필터링된 장소 목록
   const filteredLocations = (() => {
     if (activeTab === 'my') {
@@ -48,9 +51,8 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
       return locations.filter(location => myBadges.includes(location.contsName || ''));
     }
     if (activeTab === 'ai') {
-      // AI 추천: 랜덤으로 40개 선택
-      const shuffled = [...locations].sort(() => Math.random() - 0.5);
-      return shuffled.slice(0, 40);
+      // AI 추천: 저장된 추천 목록 사용 (리렌더링 시에도 유지)
+      return aiRecommendations;
     }
     if (activeTab === 'night') {
       // 야경: night_view_spots 테이블 데이터만
@@ -85,6 +87,16 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
   }, []);
 
   const [mapInitialized, setMapInitialized] = useState(false);
+
+  // activeTab이 'ai'로 변경될 때만 새로운 AI 추천 생성
+  useEffect(() => {
+    if (activeTab === 'ai' && locations.length > 0) {
+      // 새로운 랜덤 추천 생성
+      const shuffled = [...locations].sort(() => Math.random() - 0.5);
+      setAiRecommendations(shuffled.slice(0, 40));
+      console.log('Generated new AI recommendations:', shuffled.slice(0, 40).length, 'items');
+    }
+  }, [activeTab, locations]);
 
   // Load Naver Maps script and initialize map
   useEffect(() => {
