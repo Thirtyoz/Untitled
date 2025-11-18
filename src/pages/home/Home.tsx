@@ -1,4 +1,4 @@
-import { MapPin, Plus, User, Sparkles, Navigation } from "lucide-react";
+import { MapPin, Plus, User, Navigation } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { loadNaverMapsScript } from "@/utils/loadNaverMaps";
 import { BadgeDetailScreen } from "../badge/BadgeDetailScreen";
@@ -26,6 +26,7 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
   const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
+  const [panelHeight, setPanelHeight] = useState(320);
   const mapRef = useRef<HTMLDivElement>(null);
   const naverMapRef = useRef<naver.maps.Map | null>(null);
   const markersRef = useRef<naver.maps.Marker[]>([]);
@@ -177,6 +178,23 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
     };
   }, []);
 
+  // Remove default NAVER logo overlay
+  useEffect(() => {
+    if (!mapInitialized || !mapRef.current) return;
+
+    const hideLogo = () => {
+      const logoAnchor = mapRef.current?.querySelector<HTMLAnchorElement>('a[href*="legal.html"]');
+      logoAnchor?.parentElement?.remove();
+    };
+
+    hideLogo();
+
+    const observer = new MutationObserver(() => hideLogo());
+    observer.observe(mapRef.current, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, [mapInitialized]);
+
   // Add markers when map is initialized and locations are loaded
   useEffect(() => {
     if (!mapInitialized || !naverMapRef.current || !window.naver || filteredLocations.length === 0) {
@@ -324,8 +342,6 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
         {/* Naver Map Container */}
         <div id="map" ref={mapRef} className="absolute inset-0 w-full h-full" />
 
-
-
         {/* Category Tabs */}
         <div className="absolute top-4 left-0 right-0 z-10">
           <JumboTabs
@@ -341,7 +357,7 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
           </JumboTabs>
         </div>
 
-        {/* My Location button */}
+        {/* My Location button - FloatingPanel 위에 동적으로 위치 */}
         <button
           onClick={() => {
             if (navigator.geolocation && naverMapRef.current) {
@@ -358,7 +374,11 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
               );
             }
           }}
-          className={`absolute bottom-24 right-6 w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-all duration-200 z-10 ${
+          style={{
+            bottom: `${panelHeight + 16}px`,
+            transition: 'bottom 0s'
+          }}
+          className={`absolute right-6 w-12 h-12 rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-all duration-200 z-40 ${
             theme === "dark" ? "bg-slate-800 text-white" : "bg-white text-black"
           }`}
         >
@@ -378,7 +398,11 @@ export function Home({ onNavigate, theme }: HomeMapScreenProps) {
           ref={floatingPanelRef}
           anchors={[120, 320, window.innerHeight - 80]}
           className={theme === "dark" ? "floating-panel-dark" : "floating-panel-light"}
+          onHeightChange={(height) => {
+            setPanelHeight(height);
+          }}
         >
+
           <div className={`px-6 pb-3 flex items-center justify-between ${
             theme === "dark" ? "text-white" : "text-black"
           }`}>
