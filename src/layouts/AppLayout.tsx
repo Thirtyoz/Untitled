@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Menu, Home, Sparkles, TrendingUp } from "lucide-react";
+import { Menu, Home, Grid3x3, TrendingUp } from "lucide-react";
 
 export type ThemeMode = "light" | "dark";
 
@@ -9,7 +9,7 @@ function BottomNav({ theme }: { theme: ThemeMode }) {
   const location = useLocation();
   const currentPath = location.pathname;
 
-  const showBottomNav = ["/", "/ai-recommend", "/ranking", "/mypage"].includes(currentPath);
+  const showBottomNav = ["/", "/collection", "/ranking", "/mypage"].includes(currentPath);
 
   if (!showBottomNav) return null;
 
@@ -38,9 +38,9 @@ function BottomNav({ theme }: { theme: ThemeMode }) {
         </button>
 
         <button
-          onClick={() => navigate("/ai-recommend")}
+          onClick={() => navigate("/collection")}
           className={`flex flex-col items-center justify-center gap-1 transition-colors ${
-            currentPath === "/ai-recommend"
+            currentPath === "/collection"
               ? theme === "dark"
                 ? "text-white"
                 : "text-black"
@@ -49,8 +49,8 @@ function BottomNav({ theme }: { theme: ThemeMode }) {
                 : "text-gray-400 hover:text-gray-600"
           }`}
         >
-          <Sparkles className="w-5 h-5" strokeWidth={1.5} />
-          <span className="text-xs">AI 추천</span>
+          <Grid3x3 className="w-5 h-5" strokeWidth={1.5} />
+          <span className="text-xs">컬렉션</span>
         </button>
 
         <button

@@ -12,6 +12,7 @@ import {
 } from "@/pages";
 import { RouteDefinition } from "@/routes/types";
 import { useRouteRenderer } from "@/routes/hooks/useRouteRenderer";
+import { CollectionScreen } from "@/pages/collection/CollectionScreen";
 
 const routeDefinitions: RouteDefinition[] = [
   {
@@ -78,8 +79,8 @@ const routeDefinitions: RouteDefinition[] = [
     }),
   },
   {
-    path: "/ai-recommend",
-    component: AIRecommendScreen,
+    path: "/collection",
+    component: CollectionScreen,
     withLayout: true,
     // guards: ["requireUser"],
     getProps: ({ theme, navigate }) => ({
